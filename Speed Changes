@@ -1,0 +1,184 @@
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local player = Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local hrp = character:WaitForChild("HumanoidRootPart")
+
+-- GUI Setup
+local gui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
+gui.Name = "SpeedChangerGUI"
+
+local frame = Instance.new("Frame", gui)
+frame.Size = UDim2.new(0, 250, 0, 150) 
+frame.Position = UDim2.new(0.5, -125, 0.6, 0)
+frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+frame.BorderSizePixel = 0
+frame.Active = true
+frame.Draggable = false 
+
+local title = Instance.new("TextLabel", frame)
+title.Size = UDim2.new(1, 0, 0, 30)
+title.Text = "Keep Going"
+title.TextColor3 = Color3.new(1,1,1)
+title.BackgroundTransparency = 1
+title.Font = Enum.Font.SourceSansBold
+title.TextScaled = true
+
+local textbox = Instance.new("TextBox", frame)
+textbox.Position = UDim2.new(0.1, 0, 0.3, 0)
+textbox.Size = UDim2.new(0.8, 0, 0.2, 0)
+textbox.PlaceholderText = "Number only"
+textbox.Text = ""
+textbox.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+textbox.TextColor3 = Color3.new(1,1,1)
+textbox.Font = Enum.Font.SourceSans
+textbox.TextScaled = true
+
+local applyButton = Instance.new("TextButton", frame)
+applyButton.Position = UDim2.new(0.1, 0, 0.55, 0)
+applyButton.Size = UDim2.new(0.35, 0, 0.2, 0)
+applyButton.Text = "Dagan"
+applyButton.BackgroundColor3 = Color3.fromRGB(0, 200, 0) -- Green
+applyButton.TextColor3 = Color3.new(1,1,1)
+applyButton.Font = Enum.Font.SourceSansBold
+applyButton.TextScaled = true
+
+local stopButton = Instance.new("TextButton", frame)
+stopButton.Position = UDim2.new(0.55, 0, 0.55, 0)
+stopButton.Size = UDim2.new(0.35, 0, 0.2, 0)
+stopButton.Text = "Sho"
+stopButton.BackgroundColor3 = Color3.fromRGB(200, 0, 0) -- Red
+stopButton.TextColor3 = Color3.new(1,1,1)
+stopButton.Font = Enum.Font.SourceSansBold
+stopButton.TextScaled = true
+
+local statusLabel = Instance.new("TextLabel", frame)
+statusLabel.Position = UDim2.new(0.1, 0, 0.8, 0)
+statusLabel.Size = UDim2.new(0.8, 0, 0.15, 0)
+statusLabel.Text = "Status: Idle"
+statusLabel.TextColor3 = Color3.new(1,1,1)
+statusLabel.BackgroundTransparency = 1
+statusLabel.Font = Enum.Font.SourceSansItalic
+statusLabel.TextScaled = true
+
+-- 🔘 Toggle Button (Hide/Show)
+local toggleButton = Instance.new("TextButton", gui)
+toggleButton.Size = UDim2.new(0, 80, 0, 30)
+toggleButton.Position = UDim2.new(0.5, -40, 0.9, 0)
+toggleButton.Text = "Hide"
+toggleButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+toggleButton.TextColor3 = Color3.new(1,1,1)
+toggleButton.Font = Enum.Font.SourceSansBold
+toggleButton.TextScaled = true
+
+local frameVisible = true
+toggleButton.MouseButton1Click:Connect(function()
+	frameVisible = not frameVisible
+	frame.Visible = frameVisible
+	toggleButton.Text = frameVisible and "Hide" or "Show"
+end)
+
+-- Vars
+local currentSpeed = 0
+local isRunning = false
+local autoControl = true 
+
+-- Apply speed button
+applyButton.MouseButton1Click:Connect(function()
+	local newSpeed = tonumber(textbox.Text)
+	if newSpeed then
+		currentSpeed = newSpeed
+		isRunning = true
+		statusLabel.Text = "Status: Running"
+	end
+end)
+
+-- Stop button
+stopButton.MouseButton1Click:Connect(function()
+	isRunning = false
+	statusLabel.Text = "Status: Stopped"
+end)
+
+-- Movement loop
+RunService.RenderStepped:Connect(function()
+	if character and hrp then
+		if isRunning then
+			hrp.Velocity = hrp.CFrame.LookVector * currentSpeed
+		end
+	end
+end)
+
+-- 🔄 Auto race cycle (keeps running next game too)
+task.spawn(function()
+	while true do
+		if autoControl and currentSpeed > 0 then
+			isRunning = true
+			statusLabel.Text = "Status: Running (Race)"
+			task.wait(120)
+
+			isRunning = false  
+			statusLabel.Text = "Status: Waiting (Break)"  
+			task.wait(55)  
+
+			for i = 3,1,-1 do  
+				statusLabel.Text = "Race starts in: " .. i  
+				task.wait(1)  
+			end  
+		else
+			task.wait(1)
+		end
+	end
+end)
+
+-- Respawn reconnect
+player.CharacterAdded:Connect(function(newChar)
+	character = newChar
+	hrp = character:WaitForChild("HumanoidRootPart")
+	statusLabel.Text = "Status: Ready (New Race)"
+	if isRunning then
+		task.wait(1)
+		statusLabel.Text = "Status: Running"
+	end
+end)
+
+-- Dragging
+local dragging
+local dragInput
+local dragStart
+local startPos
+
+local function update(input)
+	local delta = input.Position - dragStart
+	frame.Position = UDim2.new(
+		startPos.X.Scale,
+		startPos.X.Offset + delta.X,
+		startPos.Y.Scale,
+		startPos.Y.Offset + delta.Y
+	)
+end
+
+frame.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+		dragging = true
+		dragStart = input.Position
+		startPos = frame.Position
+
+		input.Changed:Connect(function()  
+			if input.UserInputState == Enum.UserInputState.End then  
+				dragging = false  
+			end  
+		end)  
+	end
+end)
+
+frame.InputChanged:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+		dragInput = input
+	end
+end)
+
+game:GetService("UserInputService").InputChanged:Connect(function(input)
+	if dragging and input == dragInput then
+		update(input)
+	end
+end)
