@@ -1,4 +1,4 @@
-wait('2.5')
+wait(2.5)
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -77,7 +77,8 @@ toggleButton.TextScaled = true
 local frameVisible = true
 local currentSpeed = 0
 local isRunning = false
-local autoControl = true
+local autoControl = false
+local sessionId = 0  -- pang control ng loop
 
 -- Toggle Hide/Show
 toggleButton.MouseButton1Click:Connect(function()
@@ -92,8 +93,34 @@ applyButton.MouseButton1Click:Connect(function()
 	if newSpeed then
 		currentSpeed = newSpeed
 		isRunning = true
-		autoControl = true -- balik auto loop
+		autoControl = true
+		sessionId += 1 -- bagong session start
+		local mySession = sessionId
 		statusLabel.Text = "Status: Running"
+
+		-- start auto loop
+		task.spawn(function()
+			while autoControl and mySession == sessionId do
+				-- race
+				isRunning = true
+				statusLabel.Text = "Status: Running (Race)"
+				task.wait(120)
+				if not (autoControl and mySession == sessionId) then break end
+
+				-- break
+				isRunning = false
+				statusLabel.Text = "Status: Waiting (Break)"
+				task.wait(50)
+				if not (autoControl and mySession == sessionId) then break end
+
+				-- countdown
+				for i = 3,1,-1 do
+					if not (autoControl and mySession == sessionId) then break end
+					statusLabel.Text = "Race starts in: " .. i
+					task.wait(1)
+				end
+			end
+		end)
 	end
 end)
 
@@ -101,11 +128,12 @@ end)
 stopButton.MouseButton1Click:Connect(function()
 	isRunning = false
 	currentSpeed = 0
-	autoControl = false -- stop loop din
+	autoControl = false
+	sessionId += 1 -- putulin lahat ng lumang loop
 	if hrp then
 		hrp.Velocity = Vector3.zero
 	end
-	statusLabel.Text = "Status: Reset (Sho)"
+	statusLabel.Text = "Status: Idle"
 end)
 
 -- Movement loop
@@ -114,30 +142,6 @@ RunService.RenderStepped:Connect(function()
 		if isRunning then
 			hrp.Velocity = hrp.CFrame.LookVector * currentSpeed
 		end
-	end
-end)
-
--- 🔄 Auto race cycle
-task.spawn(function()
-	while true do
-		if autoControl and currentSpeed > 0 then
-			isRunning = true
-			statusLabel.Text = "Status: Running (Race)"
-			task.wait(120)
-
-			if not autoControl then continue end
-			isRunning = false    
-			statusLabel.Text = "Status: Waiting (Break)"    
-			task.wait(50)    
-
-			for i = 3,1,-1 do    
-				if not autoControl then break end
-				statusLabel.Text = "Race starts in: " .. i    
-				task.wait(1)    
-			end    
-		else  
-			task.wait(1)  
-		end  
 	end
 end)
 
@@ -155,81 +159,71 @@ end)
 -- Dragging (main frame)
 do
 	local dragging, dragInput, dragStart, startPos
-
-	local function update(input)  
-		local delta = input.Position - dragStart  
-		frame.Position = UDim2.new(  
-			startPos.X.Scale,  
-			startPos.X.Offset + delta.X,  
-			startPos.Y.Scale,  
-			startPos.Y.Offset + delta.Y  
-		)  
-	end  
-
-	frame.InputBegan:Connect(function(input)  
-		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then  
-			dragging = true  
-			dragStart = input.Position  
-			startPos = frame.Position  
-
-			input.Changed:Connect(function()  
-				if input.UserInputState == Enum.UserInputState.End then  
-					dragging = false  
-				end  
-			end)  
-		end  
-	end)  
-
-	frame.InputChanged:Connect(function(input)  
-		if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then  
-			dragInput = input  
-		end  
-	end)  
-
-	UserInputService.InputChanged:Connect(function(input)  
-		if dragging and input == dragInput then  
-			update(input)  
-		end  
+	local function update(input)
+		local delta = input.Position - dragStart
+		frame.Position = UDim2.new(
+			startPos.X.Scale,
+			startPos.X.Offset + delta.X,
+			startPos.Y.Scale,
+			startPos.Y.Offset + delta.Y
+		)
+	end
+	frame.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+			dragging = true
+			dragStart = input.Position
+			startPos = frame.Position
+			input.Changed:Connect(function()
+				if input.UserInputState == Enum.UserInputState.End then
+					dragging = false
+				end
+			end)
+		end
+	end)
+	frame.InputChanged:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+			dragInput = input
+		end
+	end)
+	UserInputService.InputChanged:Connect(function(input)
+		if dragging and input == dragInput then
+			update(input)
+		end
 	end)
 end
 
 -- Dragging (toggle button)
 do
 	local dragging, dragInput, dragStart, startPos
-
-	local function update(input)  
-		local delta = input.Position - dragStart  
-		toggleButton.Position = UDim2.new(  
-			startPos.X.Scale,  
-			startPos.X.Offset + delta.X,  
-			startPos.Y.Scale,  
-			startPos.Y.Offset + delta.Y  
-		)  
-	end  
-
-	toggleButton.InputBegan:Connect(function(input)  
-		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then  
-			dragging = true  
-			dragStart = input.Position  
-			startPos = toggleButton.Position  
-
-			input.Changed:Connect(function()  
-				if input.UserInputState == Enum.UserInputState.End then  
-					dragging = false  
-				end  
-			end)  
-		end  
-	end)  
-
-	toggleButton.InputChanged:Connect(function(input)  
-		if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then  
-			dragInput = input  
-		end  
-	end)  
-
-	UserInputService.InputChanged:Connect(function(input)  
-		if dragging and input == dragInput then  
-			update(input)  
-		end  
+	local function update(input)
+		local delta = input.Position - dragStart
+		toggleButton.Position = UDim2.new(
+			startPos.X.Scale,
+			startPos.X.Offset + delta.X,
+			startPos.Y.Scale,
+			startPos.Y.Offset + delta.Y
+		)
+	end
+	toggleButton.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+			dragging = true
+			dragStart = input.Position
+			startPos = toggleButton.Position
+			input.Changed:Connect(function()
+				if input.UserInputState == Enum.UserInputState.End then
+					dragging = false
+				end
+			end)
+		end
+	end)
+	toggleButton.InputChanged:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+			dragInput = input
+		end
+	end)
+	UserInputService.InputChanged:Connect(function(input)
+		if dragging and input == dragInput then
+			update(input)
+		end
 	end)
 end
