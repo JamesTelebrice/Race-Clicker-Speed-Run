@@ -110,7 +110,7 @@ applyButton.MouseButton1Click:Connect(function()
 				-- break
 				isRunning = false
 				statusLabel.Text = "Status: Waiting (Break)"
-				task.wait(50)
+				task.wait(52)
 				if not (autoControl and mySession == sessionId) then break end
 
 				-- countdown
@@ -227,3 +227,72 @@ do
 		end
 	end)
 end
+
+-- 📌 Connected Popup Insert
+local Lighting = game:GetService("Lighting")
+
+-- Max blur effect
+local blur = Instance.new("BlurEffect")
+blur.Size = 50
+blur.Parent = Lighting
+
+-- Popup GUI
+local popupGui = Instance.new("ScreenGui")
+popupGui.Name = "ConnectedPopup"
+popupGui.ResetOnSpawn = false
+popupGui.Parent = player:WaitForChild("PlayerGui")
+
+local popupFrame = Instance.new("Frame", popupGui)
+popupFrame.Size = UDim2.new(0, 400, 0, 200)
+popupFrame.Position = UDim2.new(0.5, -200, 0.5, -100)
+popupFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+popupFrame.BorderColor3 = Color3.fromRGB(255, 255, 255)
+popupFrame.BorderSizePixel = 1
+
+-- Title
+local popupTitle = Instance.new("TextLabel", popupFrame)
+popupTitle.Size = UDim2.new(1, 0, 0, 50)
+popupTitle.Text = "Connected"
+popupTitle.Font = Enum.Font.SourceSansBold
+popupTitle.TextSize = 28
+popupTitle.TextColor3 = Color3.new(1,1,1)
+popupTitle.BackgroundTransparency = 1
+
+-- Line
+local line = Instance.new("Frame", popupFrame)
+line.Size = UDim2.new(1, -20, 0, 1)
+line.Position = UDim2.new(0, 10, 0, 50)
+line.BackgroundColor3 = Color3.fromRGB(200,200,200)
+
+-- Message
+local popupMsg = Instance.new("TextLabel", popupFrame)
+popupMsg.Size = UDim2.new(1, -20, 0, 80)
+popupMsg.Position = UDim2.new(0, 10, 0, 60)
+popupMsg.Text = "Welcome to Speed Changer!\nEnjoy your game."
+popupMsg.Font = Enum.Font.SourceSans
+popupMsg.TextSize = 20
+popupMsg.TextColor3 = Color3.new(1,1,1)
+popupMsg.TextWrapped = true
+popupMsg.BackgroundTransparency = 1
+
+-- Continue Button
+local continueBtn = Instance.new("TextButton", popupFrame)
+continueBtn.Size = UDim2.new(0, 120, 0, 40)
+continueBtn.Position = UDim2.new(0.5, -60, 1, -60)
+continueBtn.Text = "Continue"
+continueBtn.Font = Enum.Font.SourceSansBold
+continueBtn.TextSize = 22
+continueBtn.TextColor3 = Color3.new(0,0,0)
+continueBtn.BackgroundColor3 = Color3.fromRGB(245,245,245)
+
+-- Hide muna main GUI
+frame.Visible = false
+toggleButton.Visible = false
+
+-- Pag click ng continue
+continueBtn.MouseButton1Click:Connect(function()
+    blur:Destroy()
+    popupGui:Destroy()
+    frame.Visible = true
+    toggleButton.Visible = true
+end)
